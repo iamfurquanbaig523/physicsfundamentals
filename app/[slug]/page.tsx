@@ -1,0 +1,253 @@
+import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
+import Link from "next/link";
+import ArticleContent from "@/components/ArticleContent";
+import ArticleLayout from "@/components/ArticleLayout";
+import ArticlePeekCard from "@/components/ArticlePeekCard";
+import PageShell from "@/components/PageShell";
+import { getBlogArticle, getSeriesBySlug } from "@/lib/cms";
+
+type PageProps = {
+  params: { slug: string };
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const [series, article] = await Promise.all([
+    getSeriesBySlug(params.slug),
+    getBlogArticle(params.slug),
+  ]);
+
+  if (series) {
+    return {
+      title: series.meta_title || series.title,
+      description: series.meta_description || series.description,
+      alternates: {
+        canonical: `https://physicsfundamentals.io/${series.slug}`,
+      },
+      openGraph: {
+        title: series.meta_title || series.title,
+        description: series.meta_description || series.description,
+        url: `https://physicsfundamentals.io/${series.slug}`,
+        images: [{ url: series.image || "/Thumbnail.png" }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: series.meta_title || series.title,
+        description: series.meta_description || series.description,
+        images: [series.image || "/Thumbnail.png"],
+      },
+    };
+  }
+
+  if (article) {
+    const canonicalPath = article.categorySlug ? `/${article.categorySlug}/${article.slug}` : `/${article.slug}`;
+    return {
+      title: article.metaTitle || article.title,
+      description: article.metaDescription || article.excerpt,
+      alternates: {
+        canonical: `https://physicsfundamentals.io${canonicalPath}`,
+      },
+      openGraph: {
+        title: article.metaTitle || article.title,
+        description: article.metaDescription || article.excerpt,
+        url: `https://physicsfundamentals.io${canonicalPath}`,
+        type: "article",
+        images: [{ url: article.image || "/Thumbnail.png" }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: article.metaTitle || article.title,
+        description: article.metaDescription || article.excerpt,
+        images: [article.image || "/Thumbnail.png"],
+      },
+    };
+  }
+
+  return {};
+}
+
+export default async function DynamicSlugPage({ params }: PageProps) {
+  const [series, article] = await Promise.all([
+    getSeriesBySlug(params.slug),
+    getBlogArticle(params.slug),
+  ]);
+
+  if (series) {
+    const accent = series.accent || "#00B4D8";
+
+    return (
+      <main>
+        <PageShell>
+          <section className="pt-32 pb-14 relative overflow-hidden">
+            <div className="absolute inset-0 grid-bg opacity-100 pointer-events-none" />
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                top: "18%",
+                right: "8%",
+                width: 420,
+                height: 420,
+                background: `radial-gradient(circle, ${accent}12 0%, transparent 70%)`,
+              }}
+            />
+            <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-8">
+              <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-end">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="tag">Series</span>
+                    {series.isComingSoon && (
+                      <span className="tag tag-cyan">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                  <h1
+                    className="mt-5 text-[#1A1B4B] leading-tight"
+                    style={{
+                      fontFamily: "var(--font-syne)",
+                      fontSize: "clamp(2.4rem, 6vw, 4.8rem)",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {series.title}
+                  </h1>
+                  {series.description && (
+                    <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[#4A5068]">
+                      {series.description}
+                    </p>
+                  )}
+                  <p className="mt-4 text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                    {series.isComingSoon && series.articles.length === 0
+                      ? "Articles are being prepared"
+                      : `${series.articles.length} articles in this series`}
+                  </p>
+                </div>
+
+                {series.image && (
+                  <div className="overflow-hidden rounded-lg border border-[#E0E5F0] aspect-[4/3]">
+                    <img
+                      src={series.image}
+                      alt={series.title}
+                      className="h-full w-full object-cover"
+                      fetchPriority="high"
+                      decoding="async"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {series.content && (
+            <section className="border-y border-[#E0E5F0] py-10" style={{ background: "var(--surface)" }}>
+              <div className="max-w-3xl mx-auto px-6 lg:px-8">
+                <div
+                  className="prose-custom"
+                  dangerouslySetInnerHTML={{ __html: series.content }}
+                />
+              </div>
+            </section>
+          )}
+
+          <section className="pb-24 pt-10">
+            <div className="max-w-6xl mx-auto px-6 lg:px-8">
+              {series.isComingSoon && series.articles.length === 0 ? (
+                <div className="rounded-lg border border-[#E0E5F0] p-6" style={{ background: "var(--card)" }}>
+                  <p className="text-sm font-semibold text-[#05e1f5]" style={{ fontFamily: "var(--font-dm-mono)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Coming Soon
+                  </p>
+                  <p className="mt-2 text-sm text-[#6C757D]">
+                    This series is visible now, and articles will appear here when they are published.
+                  </p>
+                </div>
+              ) : series.articles.length === 0 ? (
+                <p className="text-[#6C757D]">No articles are available in this series yet.</p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-[#E0E5F0]">
+                  {series.articles.map((article, index) => (
+                    <Link
+                      key={article.slug}
+                      href={article.href || `/${article.slug}`}
+                      className="group grid grid-cols-[52px_minmax(0,1fr)] border-b border-[#E0E5F0] transition-colors last:border-b-0 hover:bg-[#F1F4FB]"
+                    >
+                      <div
+                        className="flex justify-center border-r border-[#E0E5F0] pt-4 text-[11px] text-[#6C757D]"
+                        style={{ fontFamily: "var(--font-dm-mono)" }}
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </div>
+                      <div className={`grid gap-4 px-4 py-4 sm:px-5 ${article.image ? "sm:grid-cols-[104px_minmax(0,1fr)]" : ""}`}>
+                        {article.image && (
+                          <div className="aspect-[4/3] overflow-hidden rounded-md border border-[#E0E5F0] bg-[#F1F4FB]">
+                            <img
+                              src={article.image}
+                              alt={article.title}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <ArticlePeekCard
+                            title={article.title}
+                            excerpt={article.excerpt}
+                            attributes={article.attributes}
+                            previewHeadings={article.previewHeadings}
+                            titleTag="h2"
+                          />
+                        </div>
+                        <div
+                          className={`${article.image ? "sm:col-start-2" : ""} mt-0 flex flex-wrap items-center gap-3 text-xs text-[#6C757D]`}
+                          style={{ fontFamily: "var(--font-dm-mono)" }}
+                        >
+                          <span>{article.readTime}</span>
+                          {article.date && <span>{article.date}</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </PageShell>
+      </main>
+    );
+  }
+
+  if (!article) {
+    notFound();
+  }
+
+  if (article.categorySlug) {
+    permanentRedirect(`/${article.categorySlug}/${article.slug}`);
+  }
+
+  return (
+    <ArticleLayout
+      tag={article.tag}
+      tagColor={article.accent}
+      title={article.title}
+      excerpt={article.excerpt}
+      image={article.image}
+      date={article.date}
+      updatedOn={article.updatedOn}
+      readTime={article.readTime}
+      relatedPosts={article.relatedPosts}
+      seriesArticles={article.seriesArticles}
+      currentSlug={article.slug}
+      toc={article.toc}
+      attributes={article.attributes}
+      author={article.author}
+      updatedBy={article.updatedBy}
+      additionalAuthors={article.additionalAuthors}
+      reviewers={article.reviewers}
+      editors={article.editors}
+      faqs={article.faqs}
+      shareLinks={article.shareLinks}
+    >
+      <ArticleContent html={article.content} />
+    </ArticleLayout>
+  );
+}

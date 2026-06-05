@@ -1,0 +1,135 @@
+import Link from "next/link";
+import ArticlePeekCard from "@/components/ArticlePeekCard";
+import { getSeries } from "@/lib/cms";
+
+export default async function CoreSeries() {
+  const allSeries = await getSeries();
+
+  if (allSeries.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-24 relative">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div>
+            <span className="tag">Series</span>
+            <span
+              className="block mt-4 text-[#1A1B4B] leading-tight"
+              style={{
+                fontFamily: "var(--font-syne)",
+                fontSize: "clamp(2rem, 4vw, 3rem)",
+                fontWeight: 800,
+              }}
+            >
+              Learn by concept.<br />
+              <span className="text-stroke-white">Build from first principles.</span>
+            </span>
+          </div>
+          <Link href="/series" className="btn-ghost inline-flex items-center justify-center whitespace-nowrap text-sm px-5 py-3 self-start md:self-auto">
+            All Series -&gt;
+          </Link>
+        </div>
+ 
+        <div className="space-y-10">
+          {allSeries.map((series, seriesIndex) => {
+            const accent = series.accent || "#00B4D8";
+ 
+            return (
+              <section key={series.id} className="overflow-hidden rounded-lg border border-[#E0E5F0]">
+                <Link
+                  href={`/${series.slug}`}
+                  className="flex flex-col gap-3 border-b border-[#E0E5F0] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  style={{ background: "var(--surface)" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
+                    <span
+                      className="text-xs text-[#6C757D]"
+                      style={{ fontFamily: "var(--font-dm-mono)" }}
+                    >
+                      {String(seriesIndex + 1).padStart(2, "0")}
+                    </span>
+                    {series.icon && (
+                      <span
+                        className="flex items-center [&>svg]:h-5 [&>svg]:w-5"
+                        style={{ color: accent }}
+                        dangerouslySetInnerHTML={{ __html: series.icon }}
+                      />
+                    )}
+                    <span className="text-lg font-bold text-[#1A1B4B]" style={{ fontFamily: "var(--font-syne)" }}>
+                      {series.title}
+                    </span>
+                    {series.isComingSoon && (
+                      <span className="tag tag-cyan">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                    {series.isComingSoon && series.articles.length === 0 ? "Coming soon" : `${series.articles.length} articles`}
+                  </span>
+                </Link>
+ 
+                {series.description && (
+                  <p className="border-b border-[#E0E5F0] px-4 py-3 text-sm leading-relaxed text-[#4A5068]">
+                    {series.description}
+                  </p>
+                )}
+ 
+                <div>
+                  {series.isComingSoon && series.articles.length === 0 ? (
+                    <div className="px-4 py-5 text-sm text-[#6C757D]">
+                      Articles will appear here when this series is ready.
+                    </div>
+                  ) : series.articles.map((article, articleIndex) => (
+                    <Link
+                      key={article.slug}
+                      href={article.href || `/${article.slug}`}
+                      className="group grid grid-cols-[44px_minmax(0,1fr)] border-b border-[#E0E5F0] transition-colors last:border-b-0 hover:bg-[#F1F4FB]"
+                    >
+                      <div
+                        className="flex justify-center border-r border-[#E0E5F0] pt-4 text-[11px] text-[#6C757D]"
+                        style={{ fontFamily: "var(--font-dm-mono)" }}
+                      >
+                        {seriesIndex + 1}.{articleIndex + 1}
+                      </div>
+                      <div className={`grid gap-4 px-4 py-4 ${article.image ? "sm:grid-cols-[92px_minmax(0,1fr)]" : ""}`}>
+                        {article.image && (
+                          <div className="aspect-[4/3] overflow-hidden rounded-md border border-[#E0E5F0] bg-[#F1F4FB]">
+                            <img
+                              src={article.image}
+                              alt={article.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <ArticlePeekCard
+                            title={article.title}
+                            excerpt={article.excerpt}
+                            attributes={article.attributes}
+                            previewHeadings={article.previewHeadings}
+                            compact
+                            titleTag="span"
+                          />
+                        </div>
+                        <div className={`${article.image ? "sm:col-start-2" : ""} mt-0 flex items-center gap-3 text-xs text-[#6C757D]`} style={{ fontFamily: "var(--font-dm-mono)" }}>
+                          <span>{article.readTime}</span>
+                          {article.date && <span>{article.date}</span>}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}

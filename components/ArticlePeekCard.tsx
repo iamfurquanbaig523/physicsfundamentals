@@ -1,0 +1,115 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import ArticleAttributeChips from "@/components/ArticleAttributeChips";
+import type { ArticleAttribute } from "@/lib/cms";
+
+type ArticlePeekCardProps = {
+  title: string;
+  excerpt?: string;
+  previewHeadings?: string[];
+  attributes?: ArticleAttribute[];
+  compact?: boolean;
+  minHeightClassName?: string;
+  titleClassName?: string;
+  excerptClassName?: string;
+  titleTag?: "h2" | "h3" | "span";
+};
+
+export default function ArticlePeekCard({
+  title,
+  excerpt,
+  previewHeadings = [],
+  attributes = [],
+  compact = false,
+  minHeightClassName,
+  titleClassName,
+  excerptClassName,
+  titleTag = "h3",
+}: ArticlePeekCardProps) {
+  const phrases = useMemo(
+    () => [title, ...previewHeadings.filter(Boolean).slice(0, 5)],
+    [title, previewHeadings],
+  );
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [charCount, setCharCount] = useState(title.length);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (phrases.length <= 1) {
+      setPhraseIndex(0);
+      setCharCount(title.length);
+      setDeleting(false);
+      return;
+    }
+
+    const phrase = phrases[phraseIndex] || title;
+    const isComplete = charCount >= phrase.length;
+    const isEmpty = charCount <= 0;
+    const delay = !deleting && isComplete ? 1700 : deleting && isEmpty ? 120 : deleting ? 18 : 34;
+
+    const timer = window.setTimeout(() => {
+      if (!deleting && isComplete) {
+        setDeleting(true);
+        return;
+      }
+
+      if (deleting && isEmpty) {
+        setPhraseIndex((current) => (current + 1) % phrases.length);
+        setDeleting(false);
+        return;
+      }
+
+      setCharCount((current) => current + (deleting ? -1 : 1));
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [charCount, deleting, phraseIndex, phrases, title]);
+
+  useEffect(() => {
+    setPhraseIndex(0);
+    setCharCount(title.length);
+    setDeleting(false);
+  }, [title]);
+
+  const activePhrase = phrases[phraseIndex] || title;
+  const animatedTitle = phrases.length > 1 ? activePhrase.slice(0, charCount) : title;
+  const titleClasses =
+    titleClassName ||
+    `${compact ? "text-sm" : "text-base sm:text-lg"} font-semibold text-[#1A1B4B] leading-snug group-hover:text-[#00B4D8] transition-colors duration-200`;
+
+  const Tag = titleTag;
+
+  return (
+    <div className="min-w-0">
+      <div className={minHeightClassName || (compact ? "min-h-[78px]" : "min-h-[104px]")}>
+        <Tag
+          aria-label={title}
+          className={`${titleClasses} line-clamp-2 h-[2.75em] overflow-hidden`}
+          style={{ fontFamily: "var(--font-syne)" }}
+        >
+          {animatedTitle}
+          {phrases.length > 1 && (
+            <span className="ml-0.5 inline-block h-[1em] w-px translate-y-0.5 animate-pulse bg-[#00B4D8]" aria-hidden="true" />
+          )}
+        </Tag>
+        {excerpt && (
+          <p
+            className={
+              excerptClassName ||
+              `${compact ? "line-clamp-2" : "line-clamp-3"} mt-2 text-xs text-[#4A5068] leading-relaxed`
+            }
+            style={{ fontFamily: "var(--font-dm-sans)" }}
+          >
+            {excerpt}
+          </p>
+        )}
+      </div>
+      {attributes.length > 0 && (
+        <div className="mt-3">
+          <ArticleAttributeChips attributes={attributes} />
+        </div>
+      )}
+    </div>
+  );
+}

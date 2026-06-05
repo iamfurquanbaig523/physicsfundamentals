@@ -1,0 +1,534 @@
+import Link from "next/link";
+import ArticleAttributeChips from "@/components/ArticleAttributeChips";
+import ArticleToc from "@/components/ArticleToc";
+import MathJaxLoader from "@/components/MathJaxLoader";
+import PageShell from "@/components/PageShell";
+import ShareButtons from "@/components/ShareButtons";
+import type { ArticleAttribute, ArticleFaq, ArticleSummary, Author, ShareLinks } from "@/lib/cms";
+
+interface TocItem {
+  id: string;
+  text: string;
+  level: number;
+}
+
+type RelatedPost = {
+  title: string;
+  href: string;
+  tag: string;
+  tagColor: string;
+  isCurrent?: boolean;
+};
+
+type SidebarArticle = {
+  title: string;
+  href: string;
+  label: string;
+  tagColor: string;
+  readTime: string;
+  isCurrent: boolean;
+};
+
+interface ArticleLayoutProps {
+  tag: string;
+  tagColor: string;
+  title: string;
+  excerpt: string;
+  image?: string | null;
+  date: string;
+  updatedOn?: string | null;
+  readTime: string;
+  children: React.ReactNode;
+  toc?: TocItem[];
+  attributes?: ArticleAttribute[];
+  author?: Author;
+  updatedBy?: Author | null;
+  additionalAuthors?: Author[];
+  reviewers?: Author[];
+  editors?: Author[];
+  relatedPosts?: RelatedPost[];
+  seriesArticles?: ArticleSummary[];
+  seriesTitle?: string;
+  faqs?: ArticleFaq[];
+  currentSlug?: string;
+  shareLinks?: ShareLinks;
+}
+
+function slugFromHref(href: string) {
+  return href.replace(/^\//, "").split("#")[0];
+}
+
+function seriesHeading(title: string) {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return "Related Articles";
+  return /\bseries\b/i.test(cleanTitle) ? cleanTitle : `${cleanTitle} Series`;
+}
+
+function AuthorAvatar({ author }: { author: Author }) {
+  const avatarUrlRaw = author.avatar_url || author.avatar;
+  const avatarUrl = avatarUrlRaw && !avatarUrlRaw.startsWith("http") && !avatarUrlRaw.startsWith("/") ? `/${avatarUrlRaw}` : avatarUrlRaw;
+  return (
+    <Link href={`/authors/${author.slug}`} className="flex items-start gap-3 group/avatar block">
+      <div
+        className="flex-shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-transform group-hover/avatar:scale-105"
+        style={{
+          width: 44,
+          height: 44,
+          background: avatarUrl ? undefined : "linear-gradient(135deg, #00B4D820, #00B4D860)",
+          border: "1px solid #00B4D830",
+          overflow: "hidden",
+        }}
+      >
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={author.name}
+            loading="lazy"
+            decoding="async"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <span style={{ color: "#00B4D8", fontFamily: "var(--font-syne)" }}>
+            {author.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[#1A1B4B] leading-tight transition-colors group-hover/avatar:text-[#00B4D8]" style={{ fontFamily: "var(--font-syne)" }}>
+          {author.name}
+        </p>
+        {author.role && (
+          <p className="text-xs text-[#6C757D] mt-0.5" style={{ fontFamily: "var(--font-dm-mono)" }}>
+            {author.role}
+          </p>
+        )}
+        {author.bio && (
+          <p className="text-xs text-[#6C757D] mt-1 leading-relaxed animate-fade-in" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            {author.bio}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function ContributorGroup({ label, authors }: { label: string; authors: Author[] }) {
+  if (!authors || authors.length === 0) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold text-[#6C757D] tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-dm-mono)" }}>
+        {label}
+      </p>
+      <div className="space-y-4">
+        {authors.map((author) => (
+          <AuthorAvatar key={author.id} author={author} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ArticleSidePanel({
+  toc,
+  articles,
+  seriesTitle,
+  className = "",
+}: {
+  toc: TocItem[];
+  articles: SidebarArticle[];
+  seriesTitle: string;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-lg border border-[#E0E5F0] p-5 ${className}`} style={{ background: "var(--card)" }}>
+      <nav aria-label="In this article">
+        <p className="text-xs font-semibold text-[#6C757D] tracking-widest uppercase mb-4" style={{ fontFamily: "var(--font-dm-mono)" }}>
+          In this article
+        </p>
+        <ArticleToc toc={toc} />
+      </nav>
+      <SeriesList articles={articles} title={seriesTitle} />
+      <div className="section-line my-4" />
+      <Link href="/blog" className="btn-ghost w-full py-2.5 rounded-full text-xs text-center block">
+        All Articles -&gt;
+      </Link>
+    </div>
+  );
+}
+
+function SeriesList({ articles, title }: { articles: SidebarArticle[]; title: string }) {
+  if (articles.length === 0) return null;
+
+  return (
+    <>
+      <div className="section-line mt-5 mb-4" />
+      <nav aria-label={title}>
+        <div className="mb-4">
+          <p className="text-sm font-bold text-[#1A1B4B]" style={{ fontFamily: "var(--font-syne)" }}>
+            {title}
+          </p>
+          <div className="mt-3 h-0.5 w-full bg-[#00B4D8]" />
+        </div>
+        <ul className={`divide-y divide-[#E0E5F0] pr-1 ${articles.length > 3 ? "max-h-[15.25rem] overflow-y-auto" : ""}`}>
+          {articles.map((post) => (
+            <li key={post.href}>
+              <Link
+                href={post.href}
+                aria-current={post.isCurrent ? "page" : undefined}
+                className={`group relative flex gap-3 py-3 pl-2 pr-1 transition-colors ${
+                  post.isCurrent
+                    ? "bg-[#00B4D8]/[0.06] before:absolute before:left-0 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#00B4D8]"
+                    : "hover:bg-[#F1F4FB]"
+                }`}
+              >
+                <span
+                  className="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center text-[10px] font-bold"
+                  style={{
+                    background: post.isCurrent ? "#00B4D8" : `${post.tagColor}22`,
+                    color: post.isCurrent ? "#FFFFFF" : post.tagColor,
+                    fontFamily: "var(--font-dm-mono)",
+                    letterSpacing: "0.08em",
+                    borderRadius: "2px",
+                  }}
+                >
+                  {post.label}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block text-sm font-semibold leading-snug transition-colors ${
+                      post.isCurrent ? "text-[#00B4D8]" : "text-[#1A1B4B] group-hover:text-[#00B4D8]"
+                    }`}
+                    style={{ fontFamily: "var(--font-syne)" }}
+                  >
+                    {post.title}
+                  </span>
+                  {post.readTime && (
+                    <span className="mt-1 block text-[11px] text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                      {post.readTime}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
+  );
+}
+
+function stripHtml(input: string) {
+  return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function ArticleFaqSection({ faqs }: { faqs: ArticleFaq[] }) {
+  if (faqs.length === 0) return null;
+
+  return (
+    <section className="mt-14 rounded-lg border border-[#E0E5F0] p-6" style={{ background: "var(--card)" }}>
+      <h2 className="text-xl font-bold text-[#1A1B4B]" style={{ fontFamily: "var(--font-syne)" }}>
+        Frequently Asked Questions (FAQs)
+      </h2>
+      <div className="mt-5 divide-y divide-[#E0E5F0]">
+        {faqs.map((faq, index) => (
+          <details key={`${faq.question}-${index}`} className="group py-4 first:pt-0 last:pb-0">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-[#1A1B4B] transition-colors group-open:text-[#00B4D8] hover:text-[#00B4D8]">
+              <span className="inline-flex w-full items-start justify-between gap-4">
+                {faq.question}
+                <span className="mt-0.5 text-[#00B4D8] transition-transform group-open:rotate-45">+</span>
+              </span>
+            </summary>
+            <div
+              className="prose-custom mt-3 text-sm"
+              dangerouslySetInnerHTML={{ __html: faq.answer }}
+            />
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FaqSchema({ faqs }: { faqs: ArticleFaq[] }) {
+  const schemaFaqs = faqs.filter((faq) => faq.includeInSchema !== false);
+  if (schemaFaqs.length === 0) return null;
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: schemaFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.schemaQuestion || faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: stripHtml(faq.schemaAnswer || faq.answer),
+      },
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+function ArticlePager({
+  previous,
+  next,
+}: {
+  previous?: ArticleSummary;
+  next?: ArticleSummary;
+}) {
+  if (!previous && !next) return null;
+  const navClassName = previous && next ? "mt-12 grid gap-4 sm:grid-cols-2" : "mt-12 flex justify-start";
+  const singleCardClassName = previous && next ? "" : "w-full sm:max-w-md";
+
+  return (
+    <nav className={navClassName} aria-label="Series article navigation">
+      {previous ? (
+        <Link
+          href={previous.href || `/${previous.slug}`}
+          className={`group rounded-lg border border-[#E0E5F0] p-5 text-left transition-colors hover:border-[#00B4D8]/40 hover:bg-[#F1F4FB] ${singleCardClassName}`}
+          style={{ background: "var(--card)" }}
+        >
+          <span className="text-[10px] uppercase tracking-widest text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+            Previous
+          </span>
+          <p className="mt-2 text-sm font-semibold text-[#1A1B4B] group-hover:text-[#00B4D8]" style={{ fontFamily: "var(--font-syne)" }}>
+            {previous.title}
+          </p>
+        </Link>
+      ) : null}
+
+      {next && (
+        <Link
+          href={next.href || `/${next.slug}`}
+          className={`group rounded-lg border border-[#E0E5F0] p-5 text-left transition-colors hover:border-[#00B4D8]/40 hover:bg-[#F1F4FB] ${singleCardClassName}`}
+          style={{ background: "var(--card)" }}
+        >
+          <span className="text-[10px] uppercase tracking-widest text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+            Next
+          </span>
+          <p className="mt-2 text-sm font-semibold text-[#1A1B4B] group-hover:text-[#00B4D8]" style={{ fontFamily: "var(--font-syne)" }}>
+            {next.title}
+          </p>
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+export default function ArticleLayout({
+  tag,
+  tagColor,
+  title,
+  excerpt,
+  image,
+  date,
+  updatedOn,
+  readTime,
+  children,
+  toc = [],
+  attributes = [],
+  author,
+  updatedBy,
+  additionalAuthors = [],
+  reviewers = [],
+  editors = [],
+  relatedPosts = [],
+  seriesArticles = [],
+  seriesTitle,
+  faqs = [],
+  currentSlug,
+  shareLinks,
+}: ArticleLayoutProps) {
+  const hasContributors =
+    !!author || additionalAuthors.length > 0 || reviewers.length > 0 || editors.length > 0;
+  const currentIndex = seriesArticles.findIndex((post) => post.slug === currentSlug || post.isCurrent);
+  const previousArticle = currentIndex > 0 ? seriesArticles[currentIndex - 1] : undefined;
+  const nextArticle = currentIndex >= 0 ? seriesArticles[currentIndex + 1] : undefined;
+  const sidebarArticles: SidebarArticle[] =
+    seriesArticles.length > 0
+      ? seriesArticles.map((post, index) => ({
+          title: post.title,
+          href: post.href || `/${post.slug}`,
+          label: String(index + 1).padStart(2, "0"),
+          tagColor: post.accent || tagColor,
+          readTime: post.readTime,
+          isCurrent: Boolean(post.isCurrent || post.slug === currentSlug),
+        }))
+      : relatedPosts.map((post) => ({
+          title: post.title,
+          href: post.href,
+          label: post.tag,
+          tagColor: post.tagColor || tagColor,
+          readTime: "",
+          isCurrent: Boolean(post.isCurrent || slugFromHref(post.href) === currentSlug),
+        }));
+  const relatedSeriesTitle = seriesArticles.length > 0
+    ? seriesHeading(seriesTitle || tag)
+    : "Related Articles";
+
+  return (
+    <main>
+      <FaqSchema faqs={faqs} />
+      <MathJaxLoader />
+      <PageShell>
+        <header className="pt-36 pb-12 relative overflow-hidden">
+          <div className="absolute inset-0 grid-bg pointer-events-none" />
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: 0,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 700,
+              height: 400,
+              background: `radial-gradient(ellipse, ${tagColor}10 0%, transparent 65%)`,
+            }}
+          />
+          <div className="relative z-10 max-w-3xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center gap-3 mb-5">
+              <Link href="/blog">
+                <span className="text-xs text-[#6C757D] hover:text-[#1A1B4B] transition-colors" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                  {"<-"} Blog
+                </span>
+              </Link>
+              <span className="text-[#9CA3B8]">.</span>
+              <span
+                style={{
+                  background: `${tagColor}15`,
+                  border: `1px solid ${tagColor}30`,
+                  color: tagColor,
+                  fontFamily: "var(--font-dm-mono)",
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                }}
+              >
+                {tag}
+              </span>
+            </div>
+
+            <h1
+              className="text-[#1A1B4B] leading-tight"
+              style={{
+                fontFamily: "var(--font-syne)",
+                fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
+                fontWeight: 800,
+              }}
+            >
+              {title}
+            </h1>
+
+            <p className="mt-4 text-[#6C757D] text-base leading-relaxed" style={{ fontFamily: "var(--font-dm-sans)" }}>
+              {excerpt}
+            </p>
+
+            <div className="mt-4">
+              <ArticleAttributeChips attributes={attributes} defaultExpanded />
+            </div>
+
+            <div className="flex items-center gap-5 mt-6 text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+              <span>{date}</span>
+              <span>.</span>
+              <span>{readTime} read</span>
+            </div>
+            {(updatedOn || updatedBy) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                {updatedOn && (
+                  <span>
+                    <span className="text-[#4A5068]">Updated on:</span> {updatedOn}
+                  </span>
+                )}
+                {updatedBy && (
+                  <span>
+                    <span className="text-[#4A5068]">Updated by:</span> {updatedBy.name}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-8 h-px w-full" style={{ background: `linear-gradient(90deg, ${tagColor}50, transparent)` }} />
+
+            {image && (
+              <div className="mt-8 overflow-hidden rounded-lg border border-[#E0E5F0] bg-[#F1F4FB]">
+                <img
+                  src={image}
+                  alt={title}
+                  className="h-full max-h-[460px] w-full object-cover"
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </div>
+            )}
+          </div>
+        </header>
+
+        <section className="pb-24">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="grid gap-8 lg:grid-cols-3 lg:gap-12">
+              <aside className="lg:order-2 lg:col-span-1">
+                <ArticleSidePanel toc={toc} articles={sidebarArticles} seriesTitle={relatedSeriesTitle} />
+              </aside>
+
+              <div className="min-w-0 lg:order-1 lg:col-span-2">
+                <article className="prose-custom min-w-0">
+                  {children}
+                </article>
+
+                <ShareButtons links={shareLinks} title={title} />
+
+                <ArticlePager previous={previousArticle} next={nextArticle} />
+
+                {hasContributors && (
+                  <section className="mt-12 rounded-lg border border-[#E0E5F0] p-6 space-y-6" style={{ background: "var(--card)" }} aria-labelledby="about-contributors">
+                    <h2 id="about-contributors" className="text-xs font-semibold text-[#6C757D] tracking-widest uppercase" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                      About the Contributors
+                    </h2>
+
+                    {author && (
+                      <div>
+                        <p className="text-xs font-semibold text-[#6C757D] tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-dm-mono)" }}>
+                          Written by
+                        </p>
+                        <AuthorAvatar author={author} />
+                      </div>
+                    )}
+
+                    {additionalAuthors.length > 0 && (
+                      <>
+                        <div className="section-line" />
+                        <ContributorGroup label="Co-Authors" authors={additionalAuthors} />
+                      </>
+                    )}
+
+                    {reviewers.length > 0 && (
+                      <>
+                        <div className="section-line" />
+                        <ContributorGroup label="Reviewed by" authors={reviewers} />
+                      </>
+                    )}
+
+                    {editors.length > 0 && (
+                      <>
+                        <div className="section-line" />
+                        <ContributorGroup label="Edited by" authors={editors} />
+                      </>
+                    )}
+                  </section>
+                )}
+
+                <ArticleFaqSection faqs={faqs} />
+              </div>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    </main>
+  );
+}
