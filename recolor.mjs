@@ -19,7 +19,7 @@ const replacements = [
   [/rgba\(7,\s*7,\s*15,\s*0\.9\)/g, "rgba(250, 251, 253, 0.90)"],
   [/rgba\(7,\s*7,\s*15,\s*0\.8\)/g, "rgba(26, 27, 75, 0.40)"],
   // Brand copy
-  [/searchenginebasics\.io/g, "physicsfundamentals.io"],
+  [/searchenginebasics\.io/g, "physicsfundamental.org"],
   [/Search Engine Basics(?!:)/g, "Physics Fundamentals"],
   [/searchEngineBasics/g, "physicsFundamentals"],
 ];

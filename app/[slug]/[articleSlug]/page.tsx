@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ArticleContent from "@/components/ArticleContent";
 import ArticleLayout from "@/components/ArticleLayout";
 import { getBlogArticle, getSeriesBySlug } from "@/lib/cms";
+import { absoluteSiteUrl } from "@/lib/site";
 
 type PageProps = {
   params: { slug: string; articleSlug: string };
@@ -18,12 +19,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: article.metaTitle || article.title,
     description: article.metaDescription || article.excerpt,
     alternates: {
-      canonical: `https://physicsfundamentals.io/${params.slug}/${article.slug}`,
+      canonical: absoluteSiteUrl(`/${params.slug}/${article.slug}`),
     },
     openGraph: {
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
-      url: `https://physicsfundamentals.io/${params.slug}/${article.slug}`,
+      url: absoluteSiteUrl(`/${params.slug}/${article.slug}`),
       type: "article",
       images: [{ url: article.image || "/Thumbnail.png" }],
     },

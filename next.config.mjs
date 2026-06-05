@@ -1,6 +1,42 @@
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://physicsfundamental.org";
+const cmsApiUrl =
+  process.env.NEXT_PUBLIC_CMS_API_URL ||
+  process.env.CMS_API_URL ||
+  "https://panel.physicsfundamental.org/api";
+
+function hostnameFromUrl(value) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+const imageHosts = Array.from(
+  new Set([
+    hostnameFromUrl(siteUrl),
+    "www.physicsfundamental.org",
+    hostnameFromUrl(cmsApiUrl),
+    "panel.physicsfundamental.org",
+    "localhost",
+    "127.0.0.1",
+  ].filter(Boolean))
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.physicsfundamental.org" }],
+        destination: "https://physicsfundamental.org/:path*",
+        permanent: true,
+      },
+    ];
+  },
 
   async headers() {
     return [
@@ -18,13 +54,9 @@ const nextConfig = {
   },
 
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "physicsfundamentals.io" },
-      { protocol: "https", hostname: "panel.searchenginebasics.io" },
-      { protocol: "https", hostname: "searchenginebasics.io" },
-      { protocol: "http", hostname: "localhost" },
-      { protocol: "http", hostname: "127.0.0.1" },
-    ],
+    remotePatterns: imageHosts.flatMap((hostname) => [
+      { protocol: hostname === "localhost" || hostname === "127.0.0.1" ? "http" : "https", hostname },
+    ]),
   },
 };
 

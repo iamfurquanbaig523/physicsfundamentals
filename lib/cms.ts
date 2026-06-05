@@ -1,3 +1,5 @@
+import { SITE_DOMAIN, SITE_URL } from "@/lib/site";
+
 export type Author = {
   id: number;
   name: string;
@@ -419,7 +421,7 @@ function cmsHeaders(input?: HeadersInit, hasBody: boolean = false): Headers {
   const headers = new Headers(input);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
   if (hasBody && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (!headers.has("User-Agent")) headers.set("User-Agent", "physicsfundamentals-website/1.0");
+  if (!headers.has("User-Agent")) headers.set("User-Agent", "physicsfundamental-website/1.0");
   return headers;
 }
 
@@ -707,8 +709,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return {
     ...settings,
     brand_name: "Physics Fundamentals",
-    domain: "physicsfundamentals.io",
-    site_url: "https://physicsfundamentals.io",
+    domain: SITE_DOMAIN,
+    site_url: SITE_URL,
     home_main_article_markdown: hasLegacySearchCopy(markdown)
       ? fallbackHomeMainArticleMarkdown
       : markdown || fallbackHomeMainArticleMarkdown,

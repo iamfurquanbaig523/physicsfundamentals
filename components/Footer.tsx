@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Author } from "@/lib/cms";
+import { SITE_DOMAIN } from "@/lib/site";
 import type { NavSeries } from "./Navbar";
 
 const staticFooterLinks = {
@@ -89,7 +90,7 @@ export default function Footer({ series = [], authors = [] }: { series?: NavSeri
 
         <div className="mt-12 pt-8 border-t border-[#E0E5F0] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
-            Copyright 2026 physicsfundamentals.io · All rights reserved.
+            Copyright 2026 {SITE_DOMAIN} · All rights reserved.
           </p>
           <p className="text-xs text-[#6C757D]" style={{ fontFamily: "var(--font-dm-mono)" }}>
             Built for learners. Powered by curiosity.

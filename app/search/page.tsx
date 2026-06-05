@@ -3,6 +3,7 @@ import PageShell from "@/components/PageShell";
 import Link from "next/link";
 import ArticlePeekCard from "@/components/ArticlePeekCard";
 import { getSearchResults, recordSearchQuery } from "@/lib/cms";
+import { SITE_DOMAIN } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Search Results | Physics Fundamentals",
@@ -44,7 +45,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
                 results.map((result) => (
                   <div key={result.slug} className="group max-w-3xl">
                     <div className="flex items-center gap-2 text-xs text-[#1A1B4B] mb-1.5 opacity-80" style={{ fontFamily: "var(--font-dm-sans)" }}>
-                      <span className="font-medium bg-[#E0E5F0] px-2 py-0.5 rounded">physicsfundamentals.io</span>
+                      <span className="font-medium bg-[#E0E5F0] px-2 py-0.5 rounded">{SITE_DOMAIN}</span>
                       <span className="text-[#6C757D]">&gt;</span>
                       <span className="text-[#6C757D]">{result.slug}</span>
                     </div>

@@ -6,6 +6,7 @@ import ArticleLayout from "@/components/ArticleLayout";
 import ArticlePeekCard from "@/components/ArticlePeekCard";
 import PageShell from "@/components/PageShell";
 import { getBlogArticle, getSeriesBySlug } from "@/lib/cms";
+import { absoluteSiteUrl } from "@/lib/site";
 
 type PageProps = {
   params: { slug: string };
@@ -22,12 +23,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: series.meta_title || series.title,
       description: series.meta_description || series.description,
       alternates: {
-        canonical: `https://physicsfundamentals.io/${series.slug}`,
+        canonical: absoluteSiteUrl(`/${series.slug}`),
       },
       openGraph: {
         title: series.meta_title || series.title,
         description: series.meta_description || series.description,
-        url: `https://physicsfundamentals.io/${series.slug}`,
+        url: absoluteSiteUrl(`/${series.slug}`),
         images: [{ url: series.image || "/Thumbnail.png" }],
       },
       twitter: {
@@ -45,12 +46,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
       alternates: {
-        canonical: `https://physicsfundamentals.io${canonicalPath}`,
+        canonical: absoluteSiteUrl(canonicalPath),
       },
       openGraph: {
         title: article.metaTitle || article.title,
         description: article.metaDescription || article.excerpt,
-        url: `https://physicsfundamentals.io${canonicalPath}`,
+        url: absoluteSiteUrl(canonicalPath),
         type: "article",
         images: [{ url: article.image || "/Thumbnail.png" }],
       },
